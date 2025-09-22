@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-orbitron font-bold text-accent-purple mb-4 bg-gray-900 px-6 py-3 rounded-lg shadow-lg hover:text-accent-purple-hover transition-colors duration-300">Users</h1>
+            {% if q and field %}
+                <h5 class="text-text-dark text-center">
+                    Searching for users with <strong>{{ field }}</strong> matching <strong>{{ q }}</strong>
+                </h5>
+                <h6 class="text-text-dark text-center pb-3">
+                    Page {{ users.page }} of {{ users.total }} results
+                </h6>
+            {% endif %}
+        </div>
+
+        <!-- Search Form -->
+        <div class="mb-8">
+            {% with form = Forms.users.PublicUserSearchForm(field=field, q=q) %}
+                <form method="GET" class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                    <div class="w-full sm:w-1/4">
+                        {{ form.field(class="w-full p-2 rounded-md bg-secondary-dark text-text-light border border-gray-700 focus:outline-none focus:ring-2 focus:ring-accent-purple") }}
+                    </div>
+                    <div class="w-full sm:w-1/2">
+                        {{ form.q(class="w-full p-2 rounded-md bg-secondary-dark text-text-light border border-gray-700 focus:outline-none focus:ring-2 focus:ring-accent-purple", placeholder="Search for matching users") }}
+                    </div>
+                    <div class="w-full sm:w-1/6">
+                        <button type="submit" class="w-full p-2 bg-accent-purple text-white rounded-md hover:bg-accent-purple-hover transition-colors">Search
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </form>
+            {% endwith %}
+        </div>
+
+        <hr class="border-t border-gray-700 my-6">
+
+        <!-- User Table -->
+        <div class="overflow-x-auto rounded-xl">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-primary-dark">
+                    <tr>
+                        <th class="p-3 font-semibold text-text-light">User</th>
+                        <th class="p-3 font-semibold text-text-light">Website</th>
+                        <th class="p-3 font-semibold text-text-light hidden md:table-cell">Affiliation</th>
+                        <th class="p-3 font-semibold text-text-light hidden md:table-cell">Country</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users.items %}
+                        <tr class="border-b border-gray-700 hover:bg-secondary-dark transition-colors">
+                            <td class="p-3">
+                                {% if scores_visible() %}
+                                    <a href="{{ url_for('users.public', user_id=user.id) }}" class="text-accent-purple hover:text-accent-purple-hover">
+                                        {{ user.name | truncate(50) }}
+                                    </a>
+                                {% else %}
+                                    <span>{{ user.name | truncate(50) }}</span>
+                                {% endif %}
+                                {% if user.oauth_id %}
+                                    <a href="https://majorleaguecyber.org/u/{{ user.name }}" target="_blank" rel="noopener" class="ml-2 inline-block bg-accent-purple text-white text-xs px-2 py-1 rounded-full hover:bg-accent-purple-hover">
+                                        Official
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td class="p-3 text-center">
+                                {% if user.website and (user.website.startswith('http://') or user.website.startswith('https://')) %}
+                                    <a href="{{ user.website }}" target="_blank" rel="noopener" class="text-accent-purple hover:text-accent-purple-hover">
+                                        <i class="fas fa-external-link-alt" data-toggle="tooltip" data-placement="top" title="{{ user.website }}"></i>
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td class="p-3 hidden md:table-cell">
+                                {% if user.affiliation %}
+                                    {% if user.affiliation | length > 50 %}
+                                        <span data-toggle="tooltip" data-placement="top" title="{{ user.affiliation }}" class="text-text-dark">
+                                            {{ user.affiliation | truncate(50) }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-text-dark">
+                                            {{ user.affiliation | truncate(50) }}
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                            <td class="p-3 hidden md:table-cell">
+                                <span class="text-text-dark">
+                                    {% if user.country %}
+                                        <i class="flag-{{ user.country.lower() }}"></i>
+                                        {{ lookup_country_code(user.country) }}
+                                    {% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if users.pages > 1 %}
+            <div class="text-center mt-6">
+                <p class="text-text-dark mb-2">Page</p>
+                <div class="flex justify-center items-center gap-2">
+                    {% if users.page != 1 %}
+                        <a href="{{ prev_page }}" class="text-accent-purple hover:text-accent-purple-hover">&lt;&lt;&lt;</a>
+                    {% endif %}
+                    <select class="page-select p-2 rounded-md bg-secondary-dark text-text-light border border-gray-700 focus:outline-none focus:ring-2 focus:ring-accent-purple" onchange="window.location.href=this.value">
+                        {% for page in range(1, users.pages + 1) %}
+                            <option value="{{ url_for('users.listing', page=page, field=field, q=q) }}" {% if users.page == page %}selected{% endif %}>{{ page }}</option>
+                        {% endfor %}
+                    </select>
+                    {% if users.next_num %}
+                        <a href="{{ next_page }}" class="text-accent-purple hover:text-accent-purple-hover">&gt;&gt;&gt;</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        // Enable tooltips if supported (assuming helpers.js handles this)
+        document.querySelectorAll('[data-toggle="tooltip"]').forEach(item => {
+            item.addEventListener('mouseover', () => {
+                if (typeof initTooltip === 'function') {
+                    initTooltip(item);
+                }
+            });
+        });
+    </script>
+{% endblock %}

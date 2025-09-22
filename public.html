@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block stylesheets %}
+{% endblock %}
+
+{% block content %}
+	<div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+		<div class="text-center mb-8">
+			<h1 class="text-4xl font-orbitron font-bold mb-4 bg-gray-900 px-6 py-3 rounded-lg shadow-lg inline-block cursor-default">{{ user.name }}</h1>
+
+			<div class="flex flex-wrap justify-center items-center gap-2 md:gap-4 mb-4">
+				{% if user.team_id %}
+					<a href="{{ url_for('teams.public', team_id=user.team_id) }}" class="text-lg">
+						<span class="inline-block text-text-dark px-3 py-1 rounded-full text-xl font-semibold hover:underline hover:text-accent-purple transition-colors">
+							{{ user.team.name }}
+						</span>
+					</a>
+				{% endif %}
+
+				{% if user.oauth_id %}
+					<a href="https://majorleaguecyber.org/u/{{ user.name }}" target="_blank" rel="noopener" class="text-lg">
+						<span class="inline-block bg-accent-purple text-white text-sm px-3 py-1 rounded-full font-semibold hover:bg-accent-purple-hover transition-colors">
+							Official
+						</span>
+					</a>
+				{% endif %}
+
+				{% if user.affiliation %}
+					<span class="inline-block bg-secondary-dark text-text-dark px-3 py-1 rounded-full text-sm font-semibold">{{ user.affiliation }}</span>
+				{% endif %}
+
+				{% if user.country %}
+					<span class="inline-block bg-secondary-dark text-text-dark px-3 py-1 rounded-full text-sm font-semibold">
+						<i class="flag-{{ user.country.lower() }}"></i>
+						{{ lookup_country_code(user.country) }}
+					</span>
+				{% endif %}
+			</div>
+
+			{% for field in user.fields %}
+				<p class="text-text-dark">{{ field.name }}: {{ field.value }}</p>
+			{% endfor %}
+
+			<div class="flex justify-center gap-8 my-6">
+				<div class="text-center">
+					<h2 class="text-3xl font-bold text-white">
+						{% if account.place %}
+							{{ account.place }}
+						{% else %}
+							-
+						{% endif %}
+					</h2>
+					<small class="text-text-dark">Place</small>
+				</div>
+				<div class="text-center">
+					<h2 class="text-3xl font-bold text-white">
+						{% if account %}
+							{{ account.score }}
+						{% else %}
+							0
+						{% endif %}
+					</h2>
+					<small class="text-text-dark">Points</small>
+				</div>
+			</div>
+
+			<div class="pt-3">
+				{% if user.website %}
+					<a href="{{ user.website }}" target="_blank" class="text-gray-400 hover:text-accent-purple transition-colors" rel="noopener">
+						<i class="fas fa-external-link-alt fa-2x px-2" data-toggle="tooltip" data-placement="top"
+						   title="{{ user.website }}"></i>
+					</a>
+				{% endif %}
+			</div>
+		</div>
+
+		<hr class="border-t border-gray-700 my-8">
+
+		{% include "components/errors.html" %}
+
+		{% set solves = user.solves %}
+		{% set awards = user.awards %}
+		{% if solves or awards %}
+			<div class="flex flex-wrap -mx-4">
+				<div class="w-full md:w-1/2 px-4 mb-8">
+					<div id="keys-pie-graph" class="h-64 md:h-80 bg-secondary-dark rounded-lg p-4 flex items-center justify-center">
+						<div class="text-center w-100">
+							<i class="fas fa-circle-notch fa-spin fa-3x fa-fw spinner text-gray-500"></i>
+						</div>
+					</div>
+				</div>
+				<div class="w-full md:w-1/2 px-4 mb-8">
+					<div id="categories-pie-graph" class="h-64 md:h-80 bg-secondary-dark rounded-lg p-4 flex items-center justify-center">
+						<div class="text-center w-100">
+							<i class="fas fa-circle-notch fa-spin fa-3x fa-fw spinner text-gray-500"></i>
+						</div>
+					</div>
+				</div>
+				<div class="w-full px-4 mb-8">
+					<div id="score-graph" class="h-80 bg-secondary-dark rounded-lg p-4 flex items-center justify-center">
+						<div class="text-center w-100">
+							<i class="fas fa-circle-notch fa-spin fa-3x fa-fw spinner text-gray-500"></i>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="mb-8">
+				<h3 class="text-2xl font-bold mb-4">Awards</h3>
+				<div class="flex flex-wrap -mx-2">
+					{% for award in awards %}
+						<div class="w-full sm:w-1/2 md:w-1/3 lg:w-1/4 px-2 mb-4">
+							<div class="bg-secondary-dark rounded-lg p-4 text-center h-full">
+								<p>
+									<i class="award-icon award-{{ award.icon }} fa-2x text-accent-purple"></i>
+									<br>
+									<strong class="text-text-light">{{ award.name }}</strong>
+								</p>
+								<p class="text-sm text-text-dark">{{ award.category or ""}}</p>
+								<p class="text-sm text-text-dark">{{ award.description or ""}}</p>
+								<p class="text-sm font-semibold text-accent-purple">{{ award.value }} pts</p>
+							</div>
+						</div>
+					{% endfor %}
+				</div>
+			</div>
+
+			<div>
+				<h3 class="text-2xl font-bold mb-4">Solves</h3>
+				<div class="overflow-x-auto rounded-xl">
+					<table class="w-full text-left border-collapse">
+						<thead>
+							<tr class="bg-primary-dark">
+								<th class="p-3 font-semibold text-text-light">Challenge</th>
+								<th class="p-3 font-semibold text-text-light hidden md:table-cell">Category</th>
+								<th class="p-3 font-semibold text-text-light">Value</th>
+								<th class="p-3 font-semibold text-text-light">Time</th>
+							</tr>
+						</thead>
+						<tbody>
+						{% for solve in solves %}
+							<tr class="border-b border-gray-700 hover:bg-secondary-dark transition-colors">
+								<td class="p-3">
+									<a href="{{ url_for('challenges.listing') }}#{{ solve.challenge.name }}-{{ solve.challenge.id }}" class="text-accent-purple hover:text-accent-purple-hover">
+										{{ solve.challenge.name }}
+									</a>
+								</td>
+								<td class="p-3 hidden md:table-cell">{{ solve.challenge.category }}</td>
+								<td class="p-3">{{ solve.challenge.value }}</td>
+								<td class="p-3 solve-time">
+									<span data-time="{{ solve.date | isoformat }}"></span>
+								</td>
+							</tr>
+						{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		{% else %}
+			<div class="flex items-center justify-center min-h-[10rem]">
+				<h3 class="opacity-50 text-center w-100 justify-content-center align-self-center">
+					No solves yet
+				</h3>
+			</div>
+		{% endif %}
+	</div>
+{% endblock %}
+
+{% block scripts %}
+	<script>
+		var stats_data = {{ {
+			'type': 'user',
+			'id': user.id,
+			'name': user.name,
+			'account_id': user.id
+		} | tojson }};
+	</script>
+	<script defer src="{{ url_for('views.themes', path='js/echarts.bundle.js') }}"></script>
+	<script defer src="{{ url_for('views.themes', path='js/graphs.js') }}"></script>
+{% endblock %}
+
+{% block entrypoint %}
+	<script defer src="{{ url_for('views.themes', path='js/pages/stats.js') }}"></script>
+{% endblock %}
